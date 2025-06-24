@@ -1,3 +1,87 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:99dc09fe3038c41889dc7c52772d486ef0e3d3bbe308261f4c3a3957bc7213f1
-size 1524
+terraform {
+  required_providers {
+    aws = {
+      version = "~> 5.0"
+      source  = "hashicorp/aws"
+    }
+  }
+
+  backend "s3" {
+    bucket  = "hcl-backend-s3"
+    key     = "state-files/sg.tfstate"
+    region  = "us-east-1"
+    access_key = var.access_key
+    secret_key = var.secret_key
+  }
+}
+
+variable "access_key" {
+  type = string
+}
+
+variable "secret_key" { 
+  type = string
+}
+
+variable "vpc_id" { 
+  type = string
+}
+
+variable "ami_id" { 
+  type = string
+}
+
+
+provider "aws" {
+  access_key = var.access_key
+  secret_key = var.secret_key
+  region  = "us-east-1"
+}
+
+locals {
+  ingress = {
+    ssh     = 22
+    https   = 443
+    jenkins = 8080
+  }
+
+  egress = {
+    allow = 0
+  }
+}
+
+resource "aws_security_group" "sg_j_hooq" {
+  name        = "atif"
+  vpc_id      = var.vpc_id
+  description = "This is just a demo"
+
+  tags = {
+    Name = "atif-sg"
+  }
+}
+
+resource "aws_security_group_rule" "sg_ingress" {
+  for_each = local.ingress
+
+  type              = "ingress"
+  from_port         = each.value
+  to_port           = each.value
+  protocol          = "tcp"
+  cidr_blocks       = ["0.0.0.0/0"]
+  security_group_id = aws_security_group.sg_j_hooq.id
+}
+
+resource "aws_security_group_rule" "sg_egress" {
+  for_each = local.egress
+
+  type              = "egress"
+  from_port         = each.value
+  to_port           = each.value
+  protocol          = "-1"
+  cidr_blocks       = ["0.0.0.0/0"]
+  security_group_id = aws_security_group.sg_j_hooq.id
+}
+
+output "security_group_id" {
+  value = [aws_security_group.sg_j_hooq.id]
+}
