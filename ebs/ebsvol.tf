@@ -9,7 +9,7 @@ resource "aws_ebs_volume" "restart_ebs" {
   type              = "gp2"
 }
 
-variable vpc_id {
+variable "vpc_id" {
   type = string
 }
 
@@ -18,17 +18,17 @@ data "aws_ami" "ubuntu" {
   owners      = ["099720109477"]
 
   filter {
-    name  = "name"
+    name   = "name"
     values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
   }
 
   filter {
-    name  = "virtualization-type"
+    name   = "virtualization-type"
     values = ["hvm"]
   }
 
   filter {
-    name  = "root-device-type"
+    name   = "root-device-type"
     values = ["ebs"]
   }
 }
@@ -67,31 +67,31 @@ resource "aws_instance" "restart_instance" {
 
 
   user_data = <<-EOF
-  #!/bin/bash
+#!/bin/bash
 
-  # Detect attached EBS volume dynamically
-  DEVICE=$(nvme list | grep "Amazon Elastic Block Store" | awk '{print $1}')
-  MOUNT_POINT="/data"
+# Detect attached EBS volume dynamically
+DEVICE=$(nvme list | grep "Amazon Elastic Block Store" | awk '{print $1}')
+MOUNT_POINT="/data"
 
-  # Wait until NVMe device appears
-  while [ ! -b "$DEVICE" ]; do
-    sleep 1
+# Wait until NVMe device appears
+while [ ! -b "$DEVICE" ]; do
+  sleep 1
   done
 
-  mkdir -p $MOUNT_POINT
+mkdir -p $MOUNT_POINT
 
   # If not formatted, format it
-  if ! blkid $DEVICE; then
-      mkfs -t ext4 $DEVICE
-  fi
+if ! blkid $DEVICE; then
+  mkfs -t ext4 $DEVICE
+fi
 
   # Add to fstab if missing
-  if ! grep -qs "$MOUNT_POINT" /etc/fstab; then
-    echo "$DEVICE  $MOUNT_POINT  ext4  defaults,nofail  0  2" >> /etc/fstab
-  fi
+if ! grep -qs "$MOUNT_POINT" /etc/fstab; then
+  echo "$DEVICE  $MOUNT_POINT  ext4  defaults,nofail  0  2" >> /etc/fstab
+fi
 
-  mount -a
-  EOF
+mount -a
+EOF
 
 }
 
