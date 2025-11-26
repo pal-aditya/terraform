@@ -2,7 +2,7 @@ resource "aws_ebs_volume" "restart_ebs" {
   tags = {
     name = "restart-ebs-vol"
   }
-  size              = 4
+  size              = 8
 #  region            = "ap-south-1"
   availability_zone = "ap-south-1b"
   encrypted         = true
