@@ -42,9 +42,9 @@ resource "aws_security_group" "restart_sg" {
   name   = "dynamic-sg"
   vpc_id = var.vpc_id
   dynamic "ingress" {
-    for_each = local.inbound
+    for_each = local.inbound #looping over the local's inbound
     content {
-      from_port   = ingress.value
+      from_port   = ingress.value #fetching the values through the local variable
       to_port     = ingress.value
       protocol    = "tcp"
       cidr_blocks = local.cidr_block
@@ -64,6 +64,39 @@ resource "aws_instance" "restart_instance" {
   ami                    = data.aws_ami.ubuntu.id
   instance_type          = "t3.micro"
   vpc_security_group_ids = [aws_security_group.restart_sg.id]
+
+
+    user_data = <<-EOF
+    #!/bin/bash
+
+    DEVICE="/dev/xvdk"
+    MOUNT_POINT="/data"
+
+    # AWS maps /dev/sdk to /dev/xvdg on Linux automatically
+    # Adjust if needed based on your AMI (Ubuntu = /dev/xvd*)
+
+    # Wait for the device to be attached
+    while [ ! -b "$DEVICE" ]; do
+      sleep 1
+    done
+
+    # Create mount point
+    mkdir -p $MOUNT_POINT
+
+    # Check if filesystem exists
+    if ! blkid $DEVICE; then
+        mkfs -t ext4 $DEVICE
+    fi
+
+    # Add to fstab if not already there
+    if ! grep -qs "$MOUNT_POINT" /etc/fstab; then
+      echo "$DEVICE  $MOUNT_POINT  ext4  defaults,nofail  0  2" >> /etc/fstab
+    fi
+
+    # Mount the volume
+    mount -a
+  EOF
+
 }
 
 resource "aws_volume_attachment" "restart" {
