@@ -40,7 +40,7 @@ locals {
 
 resource "aws_security_group" "restart_sg" {
   name   = "dynamic-sg"
-  vpc_id = vpc-069ee93927d4240b7
+  vpc_id = var.vpc_id
   dynamic "ingress" {
     for_each = local.inbound #looping over the local's inbound
     content {
