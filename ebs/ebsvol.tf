@@ -69,29 +69,30 @@ resource "aws_instance" "restart_instance" {
   user_data = <<-EOF
 #!/bin/bash
 
-# Detect attached EBS volume dynamically
-DEVICE=$(nvme list | grep "Amazon Elastic Block Store" | awk '{print $1}')
+DEVICE=""
 MOUNT_POINT="/data"
 
-# Wait until NVMe device appears
-while [ ! -b "$DEVICE" ]; do
-  sleep 1
-  done
+# Wait for NVMe EBS volume to appear
+while [ -z "$DEVICE" ]; do
+  DEVICE=$(nvme list | grep "Amazon Elastic Block Store" | awk '{print $1}')
+  sleep 2
+done
 
 mkdir -p $MOUNT_POINT
 
-  # If not formatted, format it
+# If not formatted, format it
 if ! blkid $DEVICE; then
   mkfs -t ext4 $DEVICE
 fi
 
-  # Add to fstab if missing
+# Add to fstab if missing
 if ! grep -qs "$MOUNT_POINT" /etc/fstab; then
   echo "$DEVICE  $MOUNT_POINT  ext4  defaults,nofail  0  2" >> /etc/fstab
 fi
 
 mount -a
 EOF
+
 
 }
 
