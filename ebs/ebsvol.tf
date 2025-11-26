@@ -66,35 +66,31 @@ resource "aws_instance" "restart_instance" {
   vpc_security_group_ids = [aws_security_group.restart_sg.id]
 
 
-    user_data = <<-EOF
-    #!/bin/bash
+  user_data = <<-EOF
+  #!/bin/bash
 
-    DEVICE="/dev/xvdk"
-    MOUNT_POINT="/data"
+  # Detect attached EBS volume dynamically
+  DEVICE=$(nvme list | grep "Amazon Elastic Block Store" | awk '{print $1}')
+  MOUNT_POINT="/data"
 
-    # AWS maps /dev/sdk to /dev/xvdg on Linux automatically
-    # Adjust if needed based on your AMI (Ubuntu = /dev/xvd*)
+  # Wait until NVMe device appears
+  while [ ! -b "$DEVICE" ]; do
+    sleep 1
+  done
 
-    # Wait for the device to be attached
-    while [ ! -b "$DEVICE" ]; do
-      sleep 1
-    done
+  mkdir -p $MOUNT_POINT
 
-    # Create mount point
-    mkdir -p $MOUNT_POINT
+  # If not formatted, format it
+  if ! blkid $DEVICE; then
+      mkfs -t ext4 $DEVICE
+  fi
 
-    # Check if filesystem exists
-    if ! blkid $DEVICE; then
-        mkfs -t ext4 $DEVICE
-    fi
+  # Add to fstab if missing
+  if ! grep -qs "$MOUNT_POINT" /etc/fstab; then
+    echo "$DEVICE  $MOUNT_POINT  ext4  defaults,nofail  0  2" >> /etc/fstab
+  fi
 
-    # Add to fstab if not already there
-    if ! grep -qs "$MOUNT_POINT" /etc/fstab; then
-      echo "$DEVICE  $MOUNT_POINT  ext4  defaults,nofail  0  2" >> /etc/fstab
-    fi
-
-    # Mount the volume
-    mount -a
+  mount -a
   EOF
 
 }
