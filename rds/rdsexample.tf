@@ -1,6 +1,6 @@
 locals {
-  inbound_ports = [3306, 22]
-  allowed_cidrs = ["10.0.0.0/16"]
+  inbound_ports = [3306]
+  allowed_cidrs = ["0.0.0.0/0"]
 }
 
 resource "aws_security_group" "restrt_sg" {
@@ -13,7 +13,7 @@ resource "aws_security_group" "restrt_sg" {
       from_port   = ingress.value
       to_port     = ingress.value
       protocol    = "tcp"
-      cidr_blocks = local.allowed_cidrs
+      cidr_blocks = local.allowed_cidrs 
     }
   }
 
@@ -29,36 +29,42 @@ resource "aws_security_group" "restrt_sg" {
   }
 }
 
-# RDS instance
-resource "aws_db_instance" "rds_example" {
-  identifier             = "demo-rds"
-  instance_class         = "db.t3.micro"
-  storage_type           = "gp2"
-  allocated_storage      = 20
-  engine                 = "mysql"
-  engine_version         = "8.0"
-  db_name                = "restart"
-  username               = "alpha"
-  password               = "dummy"
-  port                   = 3306
-  vpc_security_group_ids = [aws_security_group.restrt_sg.id]
-  db_subnet_group_name   = aws_db_subnet_group.subnet_group.name
-  skip_final_snapshot    = true
-}
-
 resource "aws_db_subnet_group" "subnet_group" {
   name       = "demo-subnet-group"
-  subnet_ids = var.subnet_ids
+
+  # IMPORTANT: Must be PUBLIC SUBNETS to allow public RDS
+  subnet_ids = var.public_subnet_ids
 
   tags = {
     Name = "demo-rds-subnet-group"
   }
 }
 
-variable vpc_id {
+resource "aws_db_instance" "rds_example" {
+  identifier             = "demo-rds"
+  instance_class         = "db.t3.micro"
+  storage_type           = "gp2"
+  allocated_storage      = 20
+
+  engine                 = "mysql"
+  engine_version         = "8.0"
+
+  db_name                = "restart"
+  username               = "alpha"
+  password               = "dummy0901D"
+  port                   = 3306
+
+  publicly_accessible    = true
+  vpc_security_group_ids = [aws_security_group.restrt_sg.id]
+  db_subnet_group_name   = aws_db_subnet_group.subnet_group.name
+
+  skip_final_snapshot    = true
+}
+
+variable "vpc_id" {
   type = string
 }
 
-variable subnet_ids {
+variable "public_subnet_ids" {
   type = list(string)
 }
