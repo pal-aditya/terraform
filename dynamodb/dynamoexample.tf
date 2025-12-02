@@ -1,6 +1,6 @@
 resource "aws_dynamodb_table" "dec_restart"{
     name = "student"
-    billing_mode = "pay_per_request"
+    billing_mode = "PAY_PER_REQUEST"
     hash_key = "student_id"
 
 #Attributes are like coloumns in tables
