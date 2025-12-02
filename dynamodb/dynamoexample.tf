@@ -3,21 +3,11 @@ resource "aws_dynamodb_table" "dec_restart"{
     billing_mode = "PAY_PER_REQUEST"
     hash_key = "student_id"
 
-#Attributes are like coloumns in tables
+#Attributes should be defined for only the key's we've used like in hash key,sort key and LSI,GSI
 
     attribute {
         name = "student_id"
         type = "N"
-    }
-
-    attribute {
-        name = "student_name"
-        type = "S"
-    }
-
-    attribute {
-        name = "Class"
-        type = "S"
     }
 
 #ttl (attribute_name - (Optional) Name of the table attribute to store the TTL timestamp in. Required if enabled is true, must not be set otherwise.)
